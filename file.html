@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IoT Multitab Va1R0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, target-densitydpi=medium-dpi" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body{
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Helvetica',sans-serif;
+        }
+
+        li {
+            list-style: none;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+
+        #header {
+            height: 45px;
+            background-color: deepskyblue;
+        }
+            #header h1 {
+                text-align: center;
+                line-height: 45px;
+            }
+
+
+        #acm{
+            text-align: center;
+            background-color: #e9e9e9;
+        }
+        #sw_area {
+            width: 900px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .sw{
+            width:225px; height:auto;
+            text-align:center;
+            float: left;
+            transition-duration:.3s;
+        }
+        .sw > div{
+            width:175px;height:175px;
+            border-radius:50px;
+            background-color:grey;
+            margin:10px 25px;
+            left:20px
+        }
+
+        .sw > div.on{
+            background-color: #00FF00;
+        }
+
+        .sw > div.off{
+            background-color: green;
+        }
+
+        #def{
+            position: absolute;
+            display: none;
+            width: 100%; height: 100%;
+        }
+
+        .zoom-3-5{
+            zoom: 0.6;
+            -webkit-transform: scale(0.6);
+        }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+    <script>
+        $(function () {
+
+            var swstat=0;
+
+            function get_stat() {
+                $.get('/get_stat', function (rcvData) {
+                    var data = rcvData.split(',');
+                    swstat = parseInt(data[2]);
+
+                    $('#volt').html(data[0]);
+                    $('#freq').html(data[1]);
+                    for (var i = 0; i < 8; i++) {
+                        var target = $('.sw').eq(i).children();
+                        if (swstat & (1 << (i))) {
+                            target.eq(0).removeClass('off')
+                            target.eq(0).addClass('on');
+                            target.eq(2).html('ON');
+                        }
+                        else {
+                            target.eq(0).removeClass('on');
+                            target.eq(0).addClass('off');
+                            target.eq(2).html('OFF');
+                        }
+                    }
+                });
+            }
+
+            function set_stat(sw,stat) {
+                $.post('/set_stat', sw+','+stat);
+            }
+
+            for (var i = 1; i <= 8; i++) {
+                var data = '<div class="sw" nth=' + i + ' ><div></div><h1>Switch' + i + '</h1><h2>load...</h2></div>';
+                $('#sw_area').html($('#sw_area').html()+data);
+            }
+
+            var ua = window.navigator.userAgent;
+            if (/lgtelecom/i.test(ua) || /Android/i.test(ua) || /blackberry/i.test(ua) || /iPhone/i.test(ua) || /ipad/i.test(ua) || /samsung/i.test(ua) || /symbian/i.test(ua) || /sony/i.test(ua) || /SCH-/i.test(ua) || /SPH-/i.test(ua)) {
+                $('.sw').addClass('zoom-3-5');
+            }
+
+            $(window).resize(function () {
+                var sw_width = parseInt($('.sw').css('width'));
+                var max_hor_sw = Math.floor($(window).width() / sw_width);
+                max_hor_sw > 4 ? max_hor_sw = 4 : 0;
+                $('#sw_area').css('width', sw_width * max_hor_sw);
+            }).resize();
+            
+            $('.sw>div').click(function () {
+                var def = $('#def');
+                var target = $(this);
+                def.css('display','block');
+                set_stat(target.parent().attr('nth'),target.hasClass('on')?'0':(target.hasClass('off')?'1':''));
+                get_stat();
+                def.css('display', 'none');
+            });
+
+            setInterval(function () {
+                get_stat();
+            }, 1000);
+
+        });
+    </script>
+</head>
+<body>
+    <div id="wrap">
+        <header id="header">
+            <h1>IoT Multitab</h1>
+        </header>
+        <div id="acm"><span>Voltage: </span><span id="volt">load...</span><span>, Freq: </span><span id="freq">load...</span></div>
+        <div id="sw_area">
+        </div>
+        <div id="def"></div>
+    </div>
+</body>
+</html>
